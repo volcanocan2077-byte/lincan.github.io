@@ -3,7 +3,7 @@ import { fileURLToPath, URL } from 'node:url'
 import glsl from 'vite-plugin-glsl'
 
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [glsl()],
   resolve: {
     alias: {
