@@ -72,6 +72,12 @@ class Engine {
       // 只等第一张图，页面尽快出现；其余在 init 之后后台加载
       const textureSources = this.experience.gallery.getTextureSources()
       this.preloadedTextures = await this.preloadTextures(textureSources.slice(0, 1))
+      // 加载期间已被销毁：释放迟到的贴图，不再继续初始化
+      if (this.isDisposed) {
+        this.preloadedTextures.forEach((texture) => texture.dispose())
+        this.preloadedTextures.clear()
+        return
+      }
       this.experience.gallery.setPreloadedTextures(this.preloadedTextures)
 
       await this.experience.init(this.scene, this.camera)
@@ -89,7 +95,9 @@ class Engine {
       this.motionPreference.addEventListener('change', this.onMotionChange)
       document.addEventListener('visibilitychange', this.onVisibilityChange)
       this.applyMotionPreference()
-      this.loadRemainingTextures(textureSources.slice(1))
+      this.loadRemainingTextures(textureSources.slice(1)).catch((error) => {
+        console.warn('Background texture loading stopped.', error)
+      })
     } finally {
       document.body.classList.remove('loading')
     }
