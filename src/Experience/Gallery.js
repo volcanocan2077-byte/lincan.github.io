@@ -14,6 +14,8 @@ class Gallery {
     this.planeGap = 5
     this.desktopPlaneScale = 1
     this.mobilePlaneScale = 0.65
+    // 横图限宽（世界单位，平面几何宽 3）：避免横图压住左右两侧文字
+    this.maxPlaneWidth = 2.4
     this.mobileXSpreadFactor = 0.25
     this.mobileBreakpoint = 768
     this.planeConfig = galleryPlaneData
@@ -78,7 +80,7 @@ class Gallery {
       const aspectRatio =
         textureImage && textureImage.width > 0 && textureImage.height > 0
           ? textureImage.width / textureImage.height
-          : 0.75 // The five source photographs all use a 3:4 crop.
+          : 1 // 贴图未加载时的兜底比例；作品图横竖都有，以实际尺寸为准
       const fallbackColor = plane.fallbackColor || '#ffffff'
       const accentColor = plane.accentColor || fallbackColor
       const backgroundColor = plane.backgroundColor || fallbackColor
@@ -120,7 +122,16 @@ class Gallery {
       word: label.word || fallback.word,
       pms: label.pms || fallback.pms,
       color: label.color || fallback.color,
+      // 方案 B：项目名与简介替换原左侧色词
+      project: planeDefinition.project || null,
+      alt: planeDefinition.alt || '',
     }
+  }
+
+  // 按宽高比算平面缩放：竖图保持原高度，横图宽度不超过 maxPlaneWidth
+  getAspectFit(aspectRatio) {
+    const shrink = Math.min(1, this.maxPlaneWidth / (3 * aspectRatio))
+    return { x: aspectRatio * shrink, y: shrink }
   }
 
   updatePlaneScale() {
@@ -128,8 +139,8 @@ class Gallery {
     const scale = isMobileViewport ? this.mobilePlaneScale : this.desktopPlaneScale
 
     this.planes.forEach((plane) => {
-      const aspectRatio = plane.userData.aspectRatio || 1
-      plane.scale.set(scale * aspectRatio, scale, 1)
+      const fit = this.getAspectFit(plane.userData.aspectRatio || 1)
+      plane.scale.set(scale * fit.x, scale * fit.y, 1)
     })
   }
 
@@ -494,12 +505,12 @@ class Gallery {
       plane.rotation.y = tiltY
       plane.rotation.z = 0
 
-      const aspectRatio = plane.userData.aspectRatio || 1
+      const fit = this.getAspectFit(plane.userData.aspectRatio || 1)
       const baseScale =
         window.innerWidth <= this.mobileBreakpoint ? this.mobilePlaneScale : this.desktopPlaneScale
       const scalePulse = 1 + this.breathScaleAmount * breathInfluence
-      plane.scale.x = baseScale * aspectRatio * scalePulse
-      plane.scale.y = baseScale * scalePulse
+      plane.scale.x = baseScale * fit.x * scalePulse
+      plane.scale.y = baseScale * fit.y * scalePulse
       plane.scale.z = 1
     })
   }

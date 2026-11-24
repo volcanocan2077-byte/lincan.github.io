@@ -1,0 +1,92 @@
+{
+  "p1-1": {
+    "accent": "#a71b0b",
+    "background": "#000000",
+    "blob1": "#b2c9a0",
+    "blob2": "#3c5b71",
+    "labelColor": "#f4f4f4",
+    "word": "red",
+    "pms": "≈ PMS 186 C"
+  },
+  "p2-1": {
+    "accent": "#a88978",
+    "background": "#0f0808",
+    "blob1": "#ece5df",
+    "blob2": "#574b48",
+    "labelColor": "#f4f4f4",
+    "word": "taupe",
+    "pms": "≈ PMS 408 C"
+  },
+  "p2-2": {
+    "accent": "#57413d",
+    "background": "#100909",
+    "blob1": "#e7e3e2",
+    "blob2": "#998681",
+    "labelColor": "#f4f4f4",
+    "word": "taupe",
+    "pms": "≈ PMS 438 C"
+  },
+  "p2-3": {
+    "accent": "#7d554a",
+    "background": "#181111",
+    "blob1": "#fefefc",
+    "blob2": "#caaca0",
+    "labelColor": "#f4f4f4",
+    "word": "brown",
+    "pms": "≈ PMS 478 C"
+  },
+  "p3-1": {
+    "accent": "#76777f",
+    "background": "#000000",
+    "blob1": "#f7f7f8",
+    "blob2": "#3f3b3f",
+    "labelColor": "#f4f4f4",
+    "word": "gray",
+    "pms": "≈ PMS 424 C"
+  },
+  "p3-2": {
+    "accent": "#747a94",
+    "background": "#272b36",
+    "blob1": "#ffffff",
+    "blob2": "#b9c0d3",
+    "labelColor": "#f4f4f4",
+    "word": "slate",
+    "pms": "≈ PMS 430 C"
+  },
+  "p3-3": {
+    "accent": "#5b627a",
+    "background": "#555c73",
+    "blob1": "#f5f7f9",
+    "blob2": "#07080c",
+    "labelColor": "#f4f4f4",
+    "word": "slate",
+    "pms": "≈ PMS 431 C"
+  },
+  "p4-1": {
+    "accent": "#d66947",
+    "background": "#050000",
+    "blob1": "#fafbfc",
+    "blob2": "#7f726c",
+    "labelColor": "#f4f4f4",
+    "word": "coral",
+    "pms": "≈ PMS 470 C"
+  },
+  "p4-2": {
+    "accent": "#8e3a89",
+    "background": "#000000",
+    "blob1": "#4a203e",
+    "blob2": "#803ea9",
+    "labelColor": "#f4f4f4",
+    "word": "magenta",
+    "pms": "≈ PMS 259 C"
+  },
+  "p4-3": {
+    "accent": "#8d7975",
+    "background": "#020202",
+    "blob1": "#fdfdfb",
+    "blob2": "#444544",
+    "labelColor": "#f4f4f4",
+    "word": "taupe",
+    "pms": "≈ PMS 403 C"
+  }
+}

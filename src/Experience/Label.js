@@ -4,7 +4,9 @@ class Label {
 
     this.overlayElement = null
     this.leftIndexElement = null
-    this.wordElement = null
+    this.titleElement = null
+    this.introElement = null
+    this.altElement = null
     this.chipElement = null
     this.cmykValueElement = null
     this.rgbValueElement = null
@@ -16,11 +18,15 @@ class Label {
   createElement() {
     const element = document.createElement('section')
     element.className = 'plane-label-overlay'
-    element.setAttribute('aria-label', 'Active image color specifications')
+    element.setAttribute('aria-label', 'Active project and color specifications')
     element.innerHTML = `
-      <div class="plane-label-overlay__left">
+      <div class="plane-label-overlay__left" aria-live="polite" aria-atomic="true">
         <p class="plane-label-overlay__index"></p>
-        <p class="plane-label-card__word" aria-live="polite" aria-atomic="true"></p>
+        <div class="plane-label-overlay__project">
+          <h2 class="plane-label-overlay__title"></h2>
+          <p class="plane-label-overlay__intro"></p>
+          <p class="plane-label-overlay__alt"></p>
+        </div>
         <span class="plane-label-overlay__chip"></span>
       </div>
       <article class="plane-label-card plane-label-overlay__right">
@@ -48,7 +54,9 @@ class Label {
     return {
       element,
       leftIndexElement: element.querySelector('.plane-label-overlay__index'),
-      wordElement: element.querySelector('.plane-label-card__word'),
+      titleElement: element.querySelector('.plane-label-overlay__title'),
+      introElement: element.querySelector('.plane-label-overlay__intro'),
+      altElement: element.querySelector('.plane-label-overlay__alt'),
       chipElement: element.querySelector('.plane-label-overlay__chip'),
       cmykValueElement: element.querySelector('.plane-label-card__value--cmyk'),
       rgbValueElement: element.querySelector('.plane-label-card__value--rgb'),
@@ -63,7 +71,9 @@ class Label {
     const {
       element,
       leftIndexElement,
-      wordElement,
+      titleElement,
+      introElement,
+      altElement,
       chipElement,
       cmykValueElement,
       rgbValueElement,
@@ -73,7 +83,9 @@ class Label {
 
     this.overlayElement = element
     this.leftIndexElement = leftIndexElement
-    this.wordElement = wordElement
+    this.titleElement = titleElement
+    this.introElement = introElement
+    this.altElement = altElement
     this.chipElement = chipElement
     this.cmykValueElement = cmykValueElement
     this.rgbValueElement = rgbValueElement
@@ -168,8 +180,16 @@ class Label {
     const labelData = plane.userData.label || {}
     const colorSpecs = this.buildColorSpecs(plane.userData.accentColor, labelData.pms)
 
-    this.leftIndexElement.textContent = String(planeIndex + 1).padStart(2, '0')
-    this.wordElement.textContent = labelData.word || 'tone'
+    const total = String(this.gallery.planes.length).padStart(2, '0')
+    const project = labelData.project
+    const position = `${String(planeIndex + 1).padStart(2, '0')} / ${total}`
+    this.leftIndexElement.textContent = project
+      ? `${position} · Project ${String(project.number).padStart(2, '0')}`
+      : position
+    this.titleElement.textContent = project?.title || labelData.word || 'tone'
+    this.introElement.textContent = project?.intro || ''
+    // 逐图描述只给读屏，视觉上隐藏
+    this.altElement.textContent = labelData.alt || ''
     this.chipElement.style.backgroundColor = colorSpecs.chipHex
     this.cmykValueElement.textContent = colorSpecs.cmyk
     this.rgbValueElement.textContent = colorSpecs.rgb
@@ -201,7 +221,9 @@ class Label {
     this.overlayElement?.remove()
     this.overlayElement = null
     this.leftIndexElement = null
-    this.wordElement = null
+    this.titleElement = null
+    this.introElement = null
+    this.altElement = null
     this.chipElement = null
     this.cmykValueElement = null
     this.rgbValueElement = null

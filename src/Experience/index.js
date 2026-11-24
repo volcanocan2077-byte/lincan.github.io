@@ -5,11 +5,18 @@ import { Debug } from '@/Experience/Debug'
 import { Label } from '@/Experience/Label'
 import { TrailController } from '@/Experience/TrailController'
 
+// 判断文字色是否为深色（深色文字 → 页眉也用深色）
+function isDarkColor(hexColor) {
+  if (typeof hexColor !== 'string' || !/^#[0-9a-f]{6}$/i.test(hexColor)) return false
+  const value = Number.parseInt(hexColor.slice(1), 16)
+  const luminance = 0.299 * (value >> 16) + 0.587 * ((value >> 8) & 255) + 0.114 * (value & 255)
+  return luminance < 128
+}
+
 class Experience {
   constructor() {
     this.isInitialized = false
     this.isDisposed = false
-    this.frameDarkPlaneCount = 2
     this.isFrameTextDark = null
     this.debug = new Debug()
     this.gallery = new Gallery(this.debug)
@@ -40,7 +47,8 @@ class Experience {
 
     const nearestPlaneIndex =
       planeBlendData.blend >= 0.5 ? planeBlendData.nextPlaneIndex : planeBlendData.currentPlaneIndex
-    const shouldUseDarkText = nearestPlaneIndex < this.frameDarkPlaneCount
+    const labelColor = this.gallery.planes[nearestPlaneIndex]?.userData.label?.color
+    const shouldUseDarkText = isDarkColor(labelColor)
 
     if (this.isFrameTextDark === shouldUseDarkText) return
 

@@ -123,7 +123,7 @@
 .plane-label-overlay__left {
   position: absolute;
   left: clamp(2.5rem, 8vw, 12rem);
-  top: 50%;
+  top: 42%;
   transform: none;
   display: grid;
   gap: 0.75rem;
@@ -151,7 +151,7 @@
 }
 
 .plane-label-card {
-  width: min(28vw, 360px);
+  width: max-content; /* 色卡贴右侧，给横图留空间 */
   display: grid;
   grid-template-columns: 1fr;
   align-items: start;
@@ -164,10 +164,43 @@
   line-height: 1.15;
 }
 
-.plane-label-card__word {
-  margin: 0;
-  font-size: clamp(9px, 0.78vw, 11px);
+/* 逐图描述：仅供读屏 */
+.plane-label-overlay__alt {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* 方案 B：项目名 + 简介替换原左侧色词 */
+.plane-label-overlay__project {
+  display: grid;
+  gap: 0.6rem;
+  max-width: min(19vw, 250px);
+}
+
+.plane-label-overlay__title {
+  margin: 0;
+  font-size: clamp(18px, 1.7vw, 26px);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.plane-label-overlay__intro {
+  margin: 0;
+  font-size: clamp(10px, 0.75vw, 11px);
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.72;
+}
+
+.plane-label-overlay__intro:empty {
+  display: none;
 }
 
 .plane-label-card__specs {
@@ -215,14 +248,15 @@
     position: static;
     transform: none;
     gap: 0.5rem;
-    grid-column: 1;
-    grid-row: 2;
+    /* 手机：项目信息占满一行，色卡放在下一行 */
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 
   .plane-label-overlay__right {
     position: static;
     transform: none;
-    grid-column: 2;
+    grid-column: 1 / -1;
     grid-row: 2;
   }
 
@@ -231,8 +265,18 @@
     max-width: min(58vw, 270px);
   }
 
-  .plane-label-card__word {
+  .plane-label-overlay__project {
+    max-width: none;
+    gap: 0.4rem;
+  }
+
+  .plane-label-overlay__title {
+    font-size: 18px;
+  }
+
+  .plane-label-overlay__intro {
     font-size: 10px;
+    line-height: 1.5;
   }
 
   .plane-label-card__row {

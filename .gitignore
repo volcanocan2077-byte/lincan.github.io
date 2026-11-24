@@ -25,3 +25,11 @@ dist-ssr
 
 # 原始作品文件，不提交
 raw/
+
+# 本地工具产物
+.playwright-mcp/
+.claude/settings.local.json
+
+# 总览图含未公开素材（含肖像），不入库
+docs/contact-sheets/
+__pycache__/

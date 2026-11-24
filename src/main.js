@@ -10,7 +10,7 @@ if (!(canvas instanceof HTMLCanvasElement)) {
   throw new Error('Missing .webgl canvas element in index.html')
 }
 
-// A static, navigable fallback uses the original photographs, never preview media.
+// WebGL 不可用时的静态回退画廊，直接展示作品图
 function showFallback(error) {
   console.warn('WebGL gallery unavailable; using the accessible image gallery.', error)
   document.body.classList.remove('loading')
@@ -18,7 +18,7 @@ function showFallback(error) {
   canvas.hidden = true
   const stage = document.createElement('section')
   stage.className = 'fallback-stage'
-  stage.setAttribute('aria-label', 'Atmospheric depth gallery photographs')
+  stage.setAttribute('aria-label', 'Portfolio works')
   stage.innerHTML = `
     <figure class="fallback-photo">
       <img alt="" width="750" height="1000">
@@ -39,9 +39,13 @@ function showFallback(error) {
     stage.style.setProperty('--fallback-mood', plane.blob1Color)
     stage.style.setProperty('--fallback-color', plane.label.color)
     image.src = plane.textureSrc
-    image.alt = `${plane.label.word} floral photograph`
-    caption.textContent = `${String(current + 1).padStart(2, '0')} · ${plane.label.word} · ${plane.accentColor.toUpperCase()} · ${plane.label.pms}`
-    document.body.classList.toggle('frame-text-dark', current < 2)
+    const title = plane.project?.title || plane.label.word
+    image.alt = plane.alt || title
+    const meta = `${String(current + 1).padStart(2, '0')} / ${galleryPlaneData.length} · ${title} · ${plane.accentColor.toUpperCase()} · ${plane.label.pms}`
+    // 与主画廊一致：同时显示项目简介
+    caption.textContent = plane.project?.intro ? `${meta} — ${plane.project.intro}` : meta
+    // 页眉明暗跟随该图的文字色
+    document.body.classList.toggle('frame-text-dark', plane.label.color === '#2e2e2e')
     previous.disabled = current === 0
     next.disabled = current === galleryPlaneData.length - 1
   }
