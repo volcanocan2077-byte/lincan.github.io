@@ -17,7 +17,9 @@ class Engine {
     this.isRunning = false
     this.isDebugBound = false
     this.animationFrameRequestId = null
-    this.preloadedTextures = new Map()
+    // 已加载的全部贴图（预览图 + 大图），dispose 时统一释放
+    this.loadedTextures = new Set()
+    this.textureLoader = new THREE.TextureLoader()
     this.stats = null
     this.showFps = true
     this.isDebugUiVisible = false
@@ -69,16 +71,14 @@ class Engine {
     document.body.classList.add('loading')
 
     try {
-      // 只等第一张图，页面尽快出现；其余在 init 之后后台加载
-      const textureSources = this.experience.gallery.getTextureSources()
-      this.preloadedTextures = await this.preloadTextures(textureSources.slice(0, 1))
+      // 只等第一张预览图（约 10KB），页面尽快出现；其余在 init 之后后台加载
+      const firstPreview = await this.loadTexture(this.experience.gallery.planeConfig[0]?.previewSrc)
       // 加载期间已被销毁：释放迟到的贴图，不再继续初始化
       if (this.isDisposed) {
-        this.preloadedTextures.forEach((texture) => texture.dispose())
-        this.preloadedTextures.clear()
+        this.releaseTexture(firstPreview)
         return
       }
-      this.experience.gallery.setPreloadedTextures(this.preloadedTextures)
+      this.experience.gallery.setPreloadedTextures(new Map())
 
       await this.experience.init(this.scene, this.camera)
       this.scroll.init()
@@ -95,7 +95,8 @@ class Engine {
       this.motionPreference.addEventListener('change', this.onMotionChange)
       document.addEventListener('visibilitychange', this.onVisibilityChange)
       this.applyMotionPreference()
-      this.loadRemainingTextures(textureSources.slice(1)).catch((error) => {
+      if (firstPreview) this.applyPlaneTexture(0, firstPreview, 'preview')
+      this.loadTexturesProgressively().catch((error) => {
         console.warn('Background texture loading stopped.', error)
       })
     } finally {
@@ -103,19 +104,83 @@ class Engine {
     }
   }
 
-  // 按展示顺序逐张加载，离镜头近的先到；不阻塞页面
-  async loadRemainingTextures(textureSources) {
-    for (const textureSource of textureSources) {
-      if (this.isDisposed) return
-      const [texture] = (await this.preloadTextures([textureSource])).values()
-      if (!texture || this.isDisposed) {
-        texture?.dispose()
-        continue
-      }
-      this.preloadedTextures.set(textureSource, texture)
-      this.experience.gallery.applyTexture(textureSource, texture)
-      if (this.reducedMotion && !document.hidden) this.renderFrame(0)
+  // 后台加载：先并行拿全部预览图（共约 280KB），再两路并发下载大图，离当前位置最近的优先
+  async loadTexturesProgressively() {
+    const gallery = this.experience.gallery
+    const config = gallery.planeConfig
+
+    const previews = Promise.all(
+      config.map(async (planeDefinition, index) => {
+        if (index === 0) return
+        const texture = await this.loadTexture(planeDefinition.previewSrc)
+        if (this.isDisposed) return this.releaseTexture(texture)
+        if (texture) this.applyPlaneTexture(index, texture, 'preview')
+      })
+    )
+    // 预览阶段最多等 4 秒：个别预览图卡住时，大图也照常开始下载
+    await Promise.race([previews, new Promise((resolve) => setTimeout(resolve, 4000))])
+
+    const pending = new Set(config.map((_, index) => index))
+    const takeNearest = () => {
+      const current = this.getCurrentPlaneIndex()
+      let best = -1
+      let bestScore = Infinity
+      pending.forEach((index) => {
+        // 往前（还没看到的）优先，往回的稍微靠后
+        const score = index >= current ? index - current : (current - index) + 0.5
+        if (score < bestScore) {
+          bestScore = score
+          best = index
+        }
+      })
+      pending.delete(best)
+      return best
     }
+    const worker = async () => {
+      while (pending.size && !this.isDisposed) {
+        const index = takeNearest()
+        const texture = await this.loadTexture(config[index].textureSrc)
+        if (this.isDisposed) return this.releaseTexture(texture)
+        if (texture) this.applyPlaneTexture(index, texture, 'full')
+      }
+    }
+    await Promise.all([worker(), worker(), previews])
+  }
+
+  getCurrentPlaneIndex() {
+    const blendData = this.experience.gallery.getPlaneBlendData(this.camera.position.z)
+    if (!blendData) return 0
+    return blendData.blend >= 0.5 ? blendData.nextPlaneIndex : blendData.currentPlaneIndex
+  }
+
+  // 把贴图换到指定平面；被替换下来的旧贴图（预览图）随即释放
+  applyPlaneTexture(planeIndex, texture, quality) {
+    const previous = this.experience.gallery.planes[planeIndex]?.userData.texture
+    if (!this.experience.gallery.applyPlaneTexture(planeIndex, texture, quality)) {
+      this.releaseTexture(texture)
+      return
+    }
+    if (previous && previous !== texture) this.releaseTexture(previous)
+    if (this.reducedMotion && !document.hidden) this.renderFrame(0)
+  }
+
+  async loadTexture(textureSource) {
+    if (!textureSource) return null
+    try {
+      const texture = await this.textureLoader.loadAsync(textureSource)
+      texture.colorSpace = THREE.SRGBColorSpace
+      this.loadedTextures.add(texture)
+      return texture
+    } catch (error) {
+      console.warn(`Texture failed to load: ${textureSource}`, error)
+      return null
+    }
+  }
+
+  releaseTexture(texture) {
+    if (!texture) return
+    texture.dispose()
+    this.loadedTextures.delete(texture)
   }
 
   start() {
@@ -177,27 +242,6 @@ class Engine {
     this.experience.gallery.layoutPlanes()
     this.experience.label.resize(width, height)
     if (this.isInitialized && this.reducedMotion && !document.hidden) this.renderFrame(0)
-  }
-
-  async preloadTextures(textureSources = this.experience.gallery.getTextureSources()) {
-    if (!textureSources.length) return new Map()
-
-    const textureLoader = new THREE.TextureLoader()
-    const loadedTextures = new Map()
-
-    await Promise.all(
-      textureSources.map(async (textureSource) => {
-        try {
-          const texture = await textureLoader.loadAsync(textureSource)
-          texture.colorSpace = THREE.SRGBColorSpace
-          loadedTextures.set(textureSource, texture)
-        } catch (error) {
-          console.warn(`Texture failed to load: ${textureSource}`, error)
-        }
-      })
-    )
-
-    return loadedTextures
   }
 
   update() {
@@ -270,10 +314,8 @@ class Engine {
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     this.scroll.dispose()
 
-    this.preloadedTextures.forEach((texture) => {
-      texture.dispose()
-    })
-    this.preloadedTextures.clear()
+    this.loadedTextures.forEach((texture) => texture.dispose())
+    this.loadedTextures.clear()
     this.stats?.dom.remove()
     this.stats = null
     this.experience.dispose?.()

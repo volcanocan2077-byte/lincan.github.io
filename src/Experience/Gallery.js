@@ -280,20 +280,19 @@ class Gallery {
     return [...new Set(textureSources)]
   }
 
-  // 后台加载完一张贴图后，替换对应平面的占位色块
-  applyTexture(textureSource, texture) {
-    this.texturesBySource.set(textureSource, texture)
-    let applied = false
-    this.planes.forEach((plane, index) => {
-      if (this.planeConfig[index]?.textureSrc !== textureSource) return
-      plane.userData.texture = texture
-      const image = texture.image
-      if (image?.width > 0 && image?.height > 0) plane.userData.aspectRatio = image.width / image.height
-      applied = true
-    })
-    if (!applied) return
+  // 贴图到达后替换对应平面（占位色块 → 预览图 → 大图）；大图到了就不再被预览图覆盖
+  applyPlaneTexture(planeIndex, texture, quality) {
+    const plane = this.planes[planeIndex]
+    if (!plane || !texture) return false
+    if (quality === 'preview' && plane.userData.textureQuality === 'full') return false
+
+    plane.userData.texture = texture
+    plane.userData.textureQuality = quality
+    const image = texture.image
+    if (image?.width > 0 && image?.height > 0) plane.userData.aspectRatio = image.width / image.height
     this.updatePlaneMaterialMode()
     this.updatePlaneScale()
+    return true
   }
 
   setPreloadedTextures(texturesBySource) {
