@@ -69,7 +69,9 @@ class Engine {
     document.body.classList.add('loading')
 
     try {
-      this.preloadedTextures = await this.preloadTextures()
+      // 只等第一张图，页面尽快出现；其余在 init 之后后台加载
+      const textureSources = this.experience.gallery.getTextureSources()
+      this.preloadedTextures = await this.preloadTextures(textureSources.slice(0, 1))
       this.experience.gallery.setPreloadedTextures(this.preloadedTextures)
 
       await this.experience.init(this.scene, this.camera)
@@ -87,8 +89,24 @@ class Engine {
       this.motionPreference.addEventListener('change', this.onMotionChange)
       document.addEventListener('visibilitychange', this.onVisibilityChange)
       this.applyMotionPreference()
+      this.loadRemainingTextures(textureSources.slice(1))
     } finally {
       document.body.classList.remove('loading')
+    }
+  }
+
+  // 按展示顺序逐张加载，离镜头近的先到；不阻塞页面
+  async loadRemainingTextures(textureSources) {
+    for (const textureSource of textureSources) {
+      if (this.isDisposed) return
+      const [texture] = (await this.preloadTextures([textureSource])).values()
+      if (!texture || this.isDisposed) {
+        texture?.dispose()
+        continue
+      }
+      this.preloadedTextures.set(textureSource, texture)
+      this.experience.gallery.applyTexture(textureSource, texture)
+      if (this.reducedMotion && !document.hidden) this.renderFrame(0)
     }
   }
 
@@ -153,8 +171,7 @@ class Engine {
     if (this.isInitialized && this.reducedMotion && !document.hidden) this.renderFrame(0)
   }
 
-  async preloadTextures() {
-    const textureSources = this.experience.gallery.getTextureSources()
+  async preloadTextures(textureSources = this.experience.gallery.getTextureSources()) {
     if (!textureSources.length) return new Map()
 
     const textureLoader = new THREE.TextureLoader()
@@ -236,6 +253,7 @@ class Engine {
   }
 
   dispose() {
+    this.isDisposed = true // 让后台贴图加载停止
     this.stop()
 
     window.removeEventListener('resize', this.onResize)

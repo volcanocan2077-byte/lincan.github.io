@@ -80,7 +80,7 @@ class Gallery {
       const aspectRatio =
         textureImage && textureImage.width > 0 && textureImage.height > 0
           ? textureImage.width / textureImage.height
-          : 1 // 贴图未加载时的兜底比例；作品图横竖都有，以实际尺寸为准
+          : plane.aspect || 1 // 贴图未加载时用数据里的比例
       const fallbackColor = plane.fallbackColor || '#ffffff'
       const accentColor = plane.accentColor || fallbackColor
       const backgroundColor = plane.backgroundColor || fallbackColor
@@ -278,6 +278,22 @@ class Gallery {
       .filter(Boolean)
 
     return [...new Set(textureSources)]
+  }
+
+  // 后台加载完一张贴图后，替换对应平面的占位色块
+  applyTexture(textureSource, texture) {
+    this.texturesBySource.set(textureSource, texture)
+    let applied = false
+    this.planes.forEach((plane, index) => {
+      if (this.planeConfig[index]?.textureSrc !== textureSource) return
+      plane.userData.texture = texture
+      const image = texture.image
+      if (image?.width > 0 && image?.height > 0) plane.userData.aspectRatio = image.width / image.height
+      applied = true
+    })
+    if (!applied) return
+    this.updatePlaneMaterialMode()
+    this.updatePlaneScale()
   }
 
   setPreloadedTextures(texturesBySource) {
